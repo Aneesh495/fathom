@@ -125,9 +125,18 @@ func (s *Scanner) nextToken() token.Token {
 }
 
 func (s *Scanner) lex() token.Token {
+	for {
+		tok, ok := s.lexOne()
+		if ok {
+			return tok
+		}
+	}
+}
+
+func (s *Scanner) lexOne() (token.Token, bool) {
 	nl := s.skip()
 	if s.ch == -1 {
-		return token.Token{Kind: token.EOF, Span: s.span(s.off, s.off), Newline: nl}
+		return token.Token{Kind: token.EOF, Span: s.span(s.off, s.off), Newline: nl}, true
 	}
 	start := s.off
 
@@ -135,67 +144,67 @@ func (s *Scanner) lex() token.Token {
 	case '(':
 		s.next()
 		s.paren++
-		return s.simple(token.LParen, start, nl)
+		return s.simple(token.LParen, start, nl), true
 	case ')':
 		s.next()
 		if s.paren > 0 {
 			s.paren--
 		}
-		return s.simple(token.RParen, start, nl)
+		return s.simple(token.RParen, start, nl), true
 	case '[':
 		s.next()
 		s.brack++
-		return s.simple(token.LBrack, start, nl)
+		return s.simple(token.LBrack, start, nl), true
 	case ']':
 		s.next()
 		if s.brack > 0 {
 			s.brack--
 		}
-		return s.simple(token.RBrack, start, nl)
+		return s.simple(token.RBrack, start, nl), true
 	case '{':
 		s.next()
-		return s.simple(token.LBrace, start, nl)
+		return s.simple(token.LBrace, start, nl), true
 	case '}':
 		s.next()
-		return s.simple(token.RBrace, start, nl)
+		return s.simple(token.RBrace, start, nl), true
 	case ',':
 		s.next()
-		return s.simple(token.Comma, start, nl)
+		return s.simple(token.Comma, start, nl), true
 	case ';':
 		s.next()
-		return s.simple(token.Semi, start, nl)
+		return s.simple(token.Semi, start, nl), true
 	case '.':
 		s.next()
-		return s.simple(token.Dot, start, nl)
+		return s.simple(token.Dot, start, nl), true
 	case '\'':
-		return s.lexChar(start, nl)
+		return s.lexChar(start, nl), true
 	case '"':
-		return s.lexPlainString(start, nl)
+		return s.lexPlainString(start, nl), true
 	case '`':
-		return s.lexBacktick(start, nl)
+		return s.lexBacktick(start, nl), true
 	}
 
 	if s.ch == '/' && (s.peek() == '/' || s.peek() == '*') {
 		// skip() should have consumed comments. This is a safety net.
 		s.scanComment()
-		return s.lex()
+		return token.Token{}, false
 	}
 
 	if isDigit(s.ch) {
-		return s.lexNumber(start, nl)
+		return s.lexNumber(start, nl), true
 	}
 	if isIdentStart(s.ch) {
-		return s.lexIdent(start, nl)
+		return s.lexIdent(start, nl), true
 	}
 	if isOpChar(s.ch) {
-		return s.lexOp(start, nl)
+		return s.lexOp(start, nl), true
 	}
 
 	r := s.ch
 	s.next()
 	sp := s.span(start, s.off)
 	s.error(sp, fmt.Sprintf("illegal character %q", string(r)))
-	return s.lex()
+	return token.Token{}, false
 }
 
 func (s *Scanner) simple(kind token.Kind, start int, nl bool) token.Token {
