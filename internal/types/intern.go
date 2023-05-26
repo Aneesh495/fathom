@@ -24,6 +24,9 @@ type Context struct {
 	Unit    *Symbol
 	Nothing *Symbol
 	Null    *Symbol
+	Tuple2  *Symbol
+	Tuple3  *Symbol
+	Tuple4  *Symbol
 
 	intT     *Type
 	doubleT  *Type

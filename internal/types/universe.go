@@ -1,5 +1,7 @@
 package types
 
+import "strconv"
+
 // InitUniverse installs the value classes, Any, AnyRef, Nothing, and Null,
 // plus the primitive methods the compiler lowers without a call.
 func (c *Context) InitUniverse() *Scope {
@@ -67,7 +69,38 @@ func (c *Context) InitUniverse() *Scope {
 	// println and print live in the root scope, not on a class.
 	root.Bind(c.polyPrint("println", BuiltinPrintln))
 	root.Bind(c.polyPrint("print", BuiltinPrint))
+	c.Tuple2 = c.tupleClass(2)
+	c.Tuple3 = c.tupleClass(3)
+	c.Tuple4 = c.tupleClass(4)
+	root.Bind(c.Tuple2)
+	root.Bind(c.Tuple3)
+	root.Bind(c.Tuple4)
 	return root
+}
+
+func (c *Context) tupleClass(n int) *Symbol {
+	s := c.class("Tuple"+strconv.Itoa(n), SymClass, FlagFinal|FlagCase)
+	skolems := make([]*Type, n)
+	var ctor []*Symbol
+	for i := 0; i < n; i++ {
+		name := string(rune('A' + i))
+		tp := c.NewSymbol(name, SymTypeParam)
+		tp.Variance = Covariant
+		tp.Skolem = c.Skolem(name, c.Bot, c.Top)
+		s.AddMember(tp)
+		skolems[i] = tp.Skolem
+		field := c.NewSymbol("_"+strconv.Itoa(i+1), SymTerm)
+		field.Flags = FlagStable | FlagParam | FlagCase
+		field.Type = tp.Skolem
+		field.Index = i
+		s.AddMember(field)
+		ctor = append(ctor, field)
+	}
+	s.Ctor = ctor
+	s.Type = c.Named(s, skolems)
+	s.Parents = []*Type{c.Named(c.AnyRef, nil)}
+	c.installThis(s)
+	return s
 }
 
 func (c *Context) class(name string, kind SymKind, flags Flags) *Symbol {

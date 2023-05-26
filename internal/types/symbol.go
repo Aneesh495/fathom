@@ -126,6 +126,8 @@ type Symbol struct {
 	TParams []*Symbol
 	Lists   []ParamList
 	Result  *Type
+	// Ctor is the primary constructor parameter list of a class.
+	Ctor []*Symbol
 
 	// Type parameter variance and bounds. Bounds live on Skolem as well.
 	Variance Variance
