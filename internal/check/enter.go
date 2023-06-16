@@ -482,6 +482,11 @@ func (ck *Checker) enterExt(n *ast.ExtDecl, scope *types.Scope) {
 			if d, ok := st.(*ast.DefDecl); ok {
 				m := ck.enterDef(d, recvScope)
 				m.Flags |= types.FlagExtension
+				// The extension parameter is the receiver. It is not written in
+				// the method's parameter list, but it is in scope in the body.
+				if ext.Param != nil {
+					m.Owner = ext.Param
+				}
 				ext.Methods = append(ext.Methods, m)
 			} else {
 				ck.enterStmt(st, recvScope)
