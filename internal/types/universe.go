@@ -167,7 +167,6 @@ func (c *Context) installIntMethods() {
 	c.method(c.Int, "unary_~", BuiltinBitNot, nil, c.intT)
 	c.method(c.Int, "unary_+", BuiltinNone, nil, c.intT)
 	c.method(c.Int, "toString", BuiltinToString, nil, c.stringT)
-	c.method(c.Int, "abs", BuiltinNone, nil, c.intT)
 }
 
 func (c *Context) installDoubleMethods() {
