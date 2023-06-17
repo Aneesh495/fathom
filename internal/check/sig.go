@@ -30,6 +30,22 @@ func (ck *Checker) sigStmt(st ast.Stmt) {
 		ck.sigTypeDecl(n)
 	case *ast.GivenDecl:
 		ck.sigGiven(n)
+	case *ast.ExtDecl:
+		ck.sigExt(n)
+	}
+}
+
+func (ck *Checker) sigExt(n *ast.ExtDecl) {
+	if n.Param != nil {
+		if s := ck.syms[n.Param]; s != nil && n.Param.Type != nil {
+			s.Type = ck.resolveType(n.Param.Type)
+		}
+	}
+	if n.Body == nil {
+		return
+	}
+	for _, st := range n.Body.Stats {
+		ck.sigStmt(st)
 	}
 }
 
@@ -320,7 +336,13 @@ func (ck *Checker) checkStmt(st ast.Stmt) {
 		ck.checkGiven(n)
 	case *ast.ExprStmt:
 		ck.synth(n.X)
-	case *ast.TypeDecl, *ast.ExtDecl, *ast.Import:
+	case *ast.ExtDecl:
+		if n.Body != nil {
+			for _, st := range n.Body.Stats {
+				ck.checkStmt(st)
+			}
+		}
+	case *ast.TypeDecl, *ast.Import:
 	}
 }
 
