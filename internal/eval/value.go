@@ -137,6 +137,19 @@ func (e *env) set(s *types.Symbol, v Value) {
 	e.vals[s] = v
 }
 
+// update writes v into the frame that already binds s. Assignments inside a
+// nested block must change the outer variable, not shadow it.
+func (e *env) update(s *types.Symbol, v Value) bool {
+	for e != nil {
+		if _, ok := e.vals[s]; ok {
+			e.vals[s] = v
+			return true
+		}
+		e = e.parent
+	}
+	return false
+}
+
 // Error is a runtime failure with a call stack.
 type Error struct {
 	Msg   string
