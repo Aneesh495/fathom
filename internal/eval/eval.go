@@ -387,7 +387,10 @@ func (m *Machine) assign(e *ast.AssignExpr) Value {
 		if sym == nil {
 			return m.fail("bad assignment")
 		}
-		if _, ok := m.env.get(sym); ok || sym.Owner == nil || !sym.Owner.IsClassLike() {
+		if m.env.update(sym, v) {
+			return unit()
+		}
+		if sym.Owner == nil || !sym.Owner.IsClassLike() {
 			m.env.set(sym, v)
 			return unit()
 		}
@@ -459,6 +462,15 @@ func (m *Machine) infix(e *ast.InfixExpr) Value {
 	return m.callSym(sym, recv, []Value{arg}, m.info.Evidence[e])
 }
 
+func nullaryMethod(sym *types.Symbol) bool {
+	for _, list := range sym.Lists {
+		if !list.Using && len(list.Params) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func (m *Machine) selectExpr(e *ast.SelectExpr) Value {
 	recv := m.expr(e.X)
 	if m.err != nil || m.ret {
@@ -479,6 +491,9 @@ func (m *Machine) selectExpr(e *ast.SelectExpr) Value {
 		}
 		return recv.Obj.Fields[idx]
 	case types.SymMethod:
+		if nullaryMethod(sym) {
+			return m.callSym(sym, recv, nil, m.info.Evidence[e])
+		}
 		return Value{Tag: VFun, Fun: &Fun{Sym: sym, Env: m.env, This: recv, HasThis: true}}
 	case types.SymObject:
 		return m.singleton(sym)
@@ -711,6 +726,9 @@ func (m *Machine) callSym(sym *types.Symbol, recv Value, args []Value, evidence 
 		if th := sym.Owner.Get("this"); th != nil {
 			frame.set(th, recv)
 		}
+	}
+	if sym.Owner != nil && sym.Owner.Kind == types.SymTerm {
+		frame.set(sym.Owner, recv)
 	}
 	m.ret = false
 	m.stack = append(m.stack, sym.Name)
