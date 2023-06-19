@@ -299,7 +299,7 @@ func (m *Machine) call(fn *compile.Func, args []val) (val, error) {
 			}
 			args := fr.popN(in.B)
 			if len(args) == 0 || args[0].tag != tObj {
-				return val{}, m.error("virtual call without a receiver")
+				return val{}, m.error("virtual call " + name + " without a receiver")
 			}
 			obj := m.obj(args[0].ref)
 			if obj == nil {
