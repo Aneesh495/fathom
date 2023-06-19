@@ -232,6 +232,8 @@ func (c *compiler) compileSym(fn *Func) error {
 			// calling convention uniform with classes.
 			c.nlocal++
 		}
+	} else if sym.Owner != nil && sym.Owner.Kind == types.SymTerm {
+		c.bind(sym.Owner)
 	}
 	for _, list := range sym.Lists {
 		if list.Using {
@@ -704,6 +706,18 @@ func (c *compiler) builtin(op types.Builtin) {
 	c.pop(1)
 }
 
+func nullary(sym *types.Symbol) bool {
+	if sym == nil {
+		return false
+	}
+	for _, list := range sym.Lists {
+		if !list.Using && len(list.Params) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *compiler) sel(e *ast.SelectExpr) {
 	sym := c.info.Syms[e]
 	if sym != nil && sym.Kind == types.SymTerm {
@@ -713,6 +727,10 @@ func (c *compiler) sel(e *ast.SelectExpr) {
 			idx = f
 		}
 		c.u16(bc.OpGetField, idx)
+		return
+	}
+	if sym != nil && sym.Kind == types.SymMethod && nullary(sym) {
+		c.callKnown(sym, e.X, nil, c.info.Evidence[e])
 		return
 	}
 	if sym != nil && (sym.Kind == types.SymObject || sym.Has(types.FlagGiven)) {
@@ -811,7 +829,8 @@ func (c *compiler) callKnown(sym *types.Symbol, recv ast.Expr, args []ast.Expr, 
 		c.loadSym(g)
 		argc++
 	}
-	if sym.Owner != nil && (sym.Owner.IsClassLike() || sym.Owner.Has(types.FlagGiven)) {
+	virtual := sym.Owner != nil && (sym.Owner.IsClassLike() || sym.Owner.Has(types.FlagGiven)) && !sym.Has(types.FlagExtension)
+	if virtual {
 		name := c.addConst(Const{Tag: ConstString, S: sym.Name})
 		c.code.U16U8(bc.OpCallVirt, name, byte(argc))
 	} else if id, ok := c.funcID[sym]; ok {
