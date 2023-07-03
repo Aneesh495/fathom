@@ -1,0 +1,6 @@
+// expect: 720
+
+def fact(n: Int): Int =
+  if n == 0 then 1 else n * fact(n - 1)
+
+def main(): Int = fact(6)
