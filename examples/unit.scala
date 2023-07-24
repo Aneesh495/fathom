@@ -1,0 +1,3 @@
+// expect: ()
+
+def main(): Unit = ()
